@@ -4,7 +4,8 @@ import random
 import string
 import nltk
 import pandas as pd
-import time
+import sys
+import pathlib
 
 from nltk import classify, NaiveBayesClassifier
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -18,7 +19,6 @@ def pre_process_clean(tokens, useless_words):
     cleaned_tokens = list()
     lemma = WordNetLemmatizer()
 
-
     for token, tag in pos_tag(tokens):
         if tag.startswith("NN"):
             pos = 'n'
@@ -28,11 +28,12 @@ def pre_process_clean(tokens, useless_words):
             pos = 'a'
 
         token = lemma.lemmatize(token, pos)
-        token = token.replace("&shy", '').replace(";\xad", "").replace("\xad", "")
-        if token not in VALID_ENGLISH_WORDS:
-            continue
+        token = token.replace("&shy", "").replace(";\xad", "").replace("\xad", "")
 
-        if len(token) > 0 and token not in string.punctuation and token.lower() not in useless_words:
+        if token in VALID_ENGLISH_WORDS and \
+                len(token) > 0 and \
+                token not in string.punctuation and \
+                token.lower() not in useless_words:
             cleaned_tokens.append(token.lower())
 
     return cleaned_tokens
@@ -57,8 +58,6 @@ if __name__ == "__main__":
         "omw-1.4",
         "words"])
 
-    VALID_ENGLISH_WORDS = set(words.words())
-
     # Initialize Logger
     logger = logging.getLogger(APP_LOGGER)
     logger.setLevel(logging.DEBUG)
@@ -68,17 +67,36 @@ if __name__ == "__main__":
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
+    if len(sys.argv) == 2 and sys.argv[1] == 'articles.json':
+        if not pathlib.Path(sys.argv[1]).exists():
+            logger.error(f'{sys.argv[1]} not found in the project dir. To skip processing of {sys.argv[1]}, '
+                         f'use: python sentiment_analysis.py. Exiting..')
+            sys.exit(1)
+        else:
+            logger.info('Will predict articles in articles.json at the end..')
+    else:
+        logger.info('Will skip processing of articles.json via classifier at the end...')
+
+    # Set of valid english words
+    VALID_ENGLISH_WORDS = set(words.words())
+
     # Get stop words from nltk corpus
     useless_words = nltk.corpus.stopwords.words("english")
 
+    # Read IMDB dataset
+    logger.info('Reading IMDB dataset into Pandas Dataframe')
     imdb_data = pd.read_csv('IMDB_Dataset.csv')
 
     positive_cleaned_tokens_list = []
     negative_cleaned_tokens_list = []
 
+    # Get separate positive and negative reviews
+    logger.info('Getting separate positive and negative reviews')
     pos = imdb_data[imdb_data['sentiment'] == 'positive']
     neg = imdb_data[imdb_data['sentiment'] == 'negative']
 
+    # Tokenize and clean tokens
+    logger.info('Tokenizing and cleaning tokens, for positive and negative reviews')
     for pos_reviews in tqdm(pos.review):
         positive_cleaned_tokens_list.append(pre_process_clean(word_tokenize(pos_reviews), useless_words))
 
@@ -88,6 +106,8 @@ if __name__ == "__main__":
     positive_tokens_for_model = get_tokens_generator(positive_cleaned_tokens_list)
     negative_tokens_for_model = get_tokens_generator(negative_cleaned_tokens_list)
 
+    # Creating dataset as per NLTK Naive Bayes classifier
+    logger.info('Creating dataset as per NLTK Naive Bayes classifier')
     positive_dataset = [(review_dict, "Positive")
                         for review_dict in positive_tokens_for_model]
 
@@ -96,21 +116,29 @@ if __name__ == "__main__":
 
     dataset = positive_dataset + negative_dataset
 
+    # Shuffling
     random.shuffle(dataset)
 
+    # Train - Test Split
     train_data = dataset[:40000]
     test_data = dataset[40000:]
 
+    # Train
+    logger.info('Starting to train Naive Bayes Classifier')
     train_data_with_progress_bar = tqdm(train_data)
     classifier = NaiveBayesClassifier.train(train_data_with_progress_bar)
 
-    print(f"Accuracy is: {classify.accuracy(classifier, test_data) * 100}%")
+    logger.info(f"Accuracy is: {classify.accuracy(classifier, test_data) * 100}%")
 
-    print(classifier.show_most_informative_features(10))
+    classifier.show_most_informative_features(10)
 
-    with open('articles.json') as f:
-        articles = json.loads(f.read())
-        for article in articles:
-            temp = article['content'].replace("&shy", '').replace(";\xad", "").replace("\xad", "")
-            custom_tokens = pre_process_clean(word_tokenize(temp), useless_words)
-            print(temp + '\n', classifier.classify(dict([token, True] for token in custom_tokens)), '\n')
+    # Run classifier on articles.json
+    if len(sys.argv) == 2 and sys.argv[1] == 'articles.json':
+        with open('articles.json') as f:
+            articles = json.loads(f.read())
+            for article in articles:
+                temp = article['content'].replace("&shy", '').replace(";\xad", "").replace("\xad", "")
+                custom_tokens = pre_process_clean(word_tokenize(temp), useless_words)
+                print(temp + '\n', classifier.classify(dict([token, True] for token in custom_tokens)), '\n')
+
+    logger.info('End of script !!')

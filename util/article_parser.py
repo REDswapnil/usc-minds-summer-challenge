@@ -26,8 +26,7 @@ class ArticleParser:
             a_tag = article_ele.find('a', {'class': self.ANCHOR_TAG_CLASS})
             title = str(a_tag.next.string).strip()
             href = a_tag.attrs.get('href')
-            content = str(article_ele.prettify(
-    formatter=lambda x: x.replace(u'\xad', '')).contents[1].contents[1].string)
+            content = str(article_ele.contents[1].contents[1].string)
             article_list.append(Article(title=title, reference=href, content=content))
         return article_list
 

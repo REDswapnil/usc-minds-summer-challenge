@@ -34,7 +34,21 @@ This will create an articles.json in the project directory.
 
 -- Invoking `sentiment_analysis.py`:
 
+There are 2 ways with minor difference.
+
+First is to invoke script as:
+
 `python sentiment_analysis.py`
+
+This will start sentiment analysis on the IMDB dataset and test on the test split.
+
+Second way is to use:
+
+`python sentiment_analysis.py articles.json`
+
+Here, 'articles.json' is to be passed as a parameter, which is just to confirm if the user wants to use the classifier to predict sentiment of news articles present in `articles.json` file, which now should be present in the project directory.
+
+If not, script will log the error and terminate.
 
 ---
 
@@ -109,4 +123,4 @@ Applying the trained model on news articles also produces accurate results on ma
 
 ![Sentiment Analysis Plotly Viz](static/sentiment_analysis_result_plotly.png)
 
-The runtime of the script on data is **7.844 minutes** working on dataset with 50,000 records.
+The runtime of the script is **7.844 minutes** working on dataset with 50,000 records.

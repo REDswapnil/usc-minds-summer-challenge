@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     logger.info(f"Accuracy is: {classify.accuracy(classifier, test_data) * 100}%")
 
-    classifier.show_most_informative_features(10)
+    # classifier.show_most_informative_features(10)
 
     # Run classifier on articles.json
     if len(sys.argv) == 2 and sys.argv[1] == 'articles.json':

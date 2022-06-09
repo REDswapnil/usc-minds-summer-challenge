@@ -15,7 +15,7 @@ from tqdm import tqdm
 from nltk.corpus import words
 
 
-def pre_process_clean(tokens, useless_words):
+def pre_process_clean(tokens, useless_words, valid_english_word_set):
     cleaned_tokens = list()
     lemma = WordNetLemmatizer()
 
@@ -30,7 +30,7 @@ def pre_process_clean(tokens, useless_words):
         token = lemma.lemmatize(token, pos)
         token = token.replace("&shy", "").replace(";\xad", "").replace("\xad", "")
 
-        if token in VALID_ENGLISH_WORDS and \
+        if token in valid_english_word_set and \
                 len(token) > 0 and \
                 token not in string.punctuation and \
                 token.lower() not in useless_words:
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     VALID_ENGLISH_WORDS = set(words.words())
 
     # Get stop words from nltk corpus
-    useless_words = nltk.corpus.stopwords.words("english")
+    USELESS_WORDS = nltk.corpus.stopwords.words("english")
 
     # Read IMDB dataset
     logger.info('Reading IMDB dataset into Pandas Dataframe')
@@ -98,10 +98,12 @@ if __name__ == "__main__":
     # Tokenize and clean tokens
     logger.info('Tokenizing and cleaning tokens, for positive and negative reviews')
     for pos_reviews in tqdm(pos.review):
-        positive_cleaned_tokens_list.append(pre_process_clean(word_tokenize(pos_reviews), useless_words))
+        positive_cleaned_tokens_list.append(pre_process_clean(word_tokenize(pos_reviews),
+                                                              USELESS_WORDS, VALID_ENGLISH_WORDS))
 
     for neg_reviews in tqdm(neg.review):
-        negative_cleaned_tokens_list.append(pre_process_clean(word_tokenize(neg_reviews), useless_words))
+        negative_cleaned_tokens_list.append(pre_process_clean(word_tokenize(neg_reviews),
+                                                              USELESS_WORDS, VALID_ENGLISH_WORDS))
 
     positive_tokens_for_model = get_tokens_generator(positive_cleaned_tokens_list)
     negative_tokens_for_model = get_tokens_generator(negative_cleaned_tokens_list)
@@ -138,7 +140,7 @@ if __name__ == "__main__":
             articles = json.loads(f.read())
             for article in articles:
                 temp = article['content'].replace("&shy", '').replace(";\xad", "").replace("\xad", "")
-                custom_tokens = pre_process_clean(word_tokenize(temp), useless_words)
-                print(temp + '\n', classifier.classify(dict([token, True] for token in custom_tokens)), '\n')
+                custom_tokens = pre_process_clean(word_tokenize(temp), USELESS_WORDS, VALID_ENGLISH_WORDS)
+                logger.info(f'Article: {temp} \n Sentiment : {classifier.classify(dict([token, True] for token in custom_tokens))}\n')
 
     logger.info('End of script !!')

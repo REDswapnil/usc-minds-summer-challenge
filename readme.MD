@@ -30,25 +30,31 @@ Originally, conda was used to create and manage virtual environment for the proj
 
 `python main.py`
 
-This will create an articles.json in the project directory.
+This will create an articles.json in the project directory. The repository already contains an articles.json file for ready use.
 
 -- Invoking `sentiment_analysis.py`:
 
-There are 2 ways with minor difference.
+There are 3 ways with minor difference.
 
 First is to invoke script as:
 
 `python sentiment_analysis.py`
 
-This will start sentiment analysis on the IMDB dataset and test on the test split.
+This will start sentiment analysis, with training on the IMDB dataset and test on the test split.
 
 Second way is to use:
 
 `python sentiment_analysis.py articles.json`
 
-Here, 'articles.json' is to be passed as a parameter, which is just to confirm if the user wants to use the classifier to predict sentiment of news articles present in `articles.json` file, which now should be present in the project directory.
+The functionality is similar to above. Here, 'articles.json' is to be passed as a parameter, which is just to confirm if the user wants to use the classifier to predict sentiment of news articles present in `articles.json` file, which now should be present in the project directory.
 
 If not, script will log the error and terminate.
+
+Third and final is to use:
+
+`python articles_sentiment_predict.py`
+
+This will only predict the sentiment of the news articles from articles.json using the pre-trained classifier, loaded from `model.pickle` file using the pickle package.
 
 ---
 
